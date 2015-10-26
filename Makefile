@@ -60,6 +60,8 @@ run-jit-arm: jit-arm
 	$(QEMU_ARM) jit-arm progs/hello.b && \
 	$(CROSS_COMPILE)objdump -D -b binary -marm /tmp/jitcode
 
+run-benchmark: jit-x64 bench-jit-x64
+
 bench-jit-x64: jit-x64
 	@echo
 	@echo Executing Brainf*ck benchmark suite. Be patient.
