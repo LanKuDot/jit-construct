@@ -78,6 +78,82 @@ int main(int argc, char *argv[])
 				break;
 			}
 
+			// Detect multiply and copy loop
+			// Expected format:
+			// [ - {continuous '>' or '<'} {continuous +} {continuous '>' or '<'} {continuous +} {continuous '>' or '<'} ]
+			if ( *(p+1) == '-' ) {
+				int dst = 0, dst_1 = 0, dst_2 = 0, mul_1 = 0, mul_2 = 0, loop_end = 2;
+
+				// Count the distance of the first destination
+				if ( *(p+loop_end) == '>' ) {
+					while ( *(p+loop_end) == '>' ) {
+						++loop_end; ++dst;
+					}
+				} else {
+					while ( *(p+loop_end) == '<' ) {
+						++loop_end; --dst;
+					}
+				}
+				dst_1 = dst;
+
+				// Count mul_1
+				while ( *(p+loop_end) == '+' ) {
+					++loop_end; ++mul_1;
+				}
+
+				// Count the second one
+				if ( *(p+loop_end) == '>' ) {
+					while ( *(p+loop_end) == '>' ) {
+						++loop_end; ++dst;
+					}
+				} else {
+					while ( *(p+loop_end) == '<' ) {
+						++loop_end; --dst;
+					}
+				}
+				dst_2 = dst;
+
+				// Count mul_2
+				while( *(p+loop_end) == '+' ) {
+					++loop_end; ++mul_2;
+				}
+
+				// Count the distance move back to original one
+				if ( *(p+loop_end) == '>' ) {
+					while ( *(p+loop_end) == '>' ) {
+						++loop_end; ++dst;
+					}
+				} else {
+					while ( *(p+loop_end) == '<' ) {
+						++loop_end; --dst;
+					}
+				}
+
+				if ( dst == 0 && *(p+loop_end) == ']' ) {
+					p += loop_end;
+					| push  r8
+					| push  r9 
+
+					| movzx r8, byte [PTR]
+					| imul  r8, mul_1
+					| mov   r9, PTR
+					| add   r9, dst_1
+					| add   byte [r9], r8b
+
+					| movzx r8, byte [PTR]
+					| imul  r8, mul_2
+					| mov   r9, PTR
+					| add   r9, dst_2
+					| add   byte [r9], r8b
+
+					| mov   byte [PTR], 0
+
+					| pop   r9
+					| pop   r8
+					break;
+				}
+			}
+
 			if (top == limit) err("Nesting too deep.");
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
